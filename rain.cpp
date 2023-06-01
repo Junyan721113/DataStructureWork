@@ -6,6 +6,7 @@ using namespace cv;
 const Vec2d _Gravity = {0.0, 980};      /* cm / s^2 */
 const Size _Size = {500, 500};          /* px */
 const Size2f _RippleSize = {1, 0.3};    /* px */
+const int _LightningTime = 20;
 int _RainTime = 1;                /* frames */
 int _RainAmount = 1;
 int _RippleSpeed = 100;       /* cm / px */
@@ -53,8 +54,9 @@ public:
 int main() {
     list<_tpRainDrop> RainDrops;
     list<_tpRipple> Ripples;
-    Mat3b Canvas;
+    Mat3b Canvas(_Size, CV_8UC3);
     int cnt;
+    int lightning = 0;
     namedWindow("Rain");
     createTrackbar("RainDrop Time", "Rain", &_RainTime, 100);
     createTrackbar("Rain Amount", "Rain", &_RainAmount, 100);
@@ -65,7 +67,8 @@ int main() {
     createTrackbar("Scale", "Rain", &_Scale, 5, [](int, void *){if(_Scale == 0) _Scale = 1;});
     while(waitKey(20) != 'q') {
         if(_RainTime != 0 && cnt % _RainTime == 0) for(int i = 1; i <= _RainAmount; i++) RainDrops.push_back(_tpRainDrop());
-        Canvas = Mat3b::zeros(_Size);
+        if(rng.uniform(-490, 10) >= 0) lightning = _LightningTime;
+        rectangle(Canvas, Rect(Point(0, 0), _Size), Scalar(255, 255, 255) * lightning-- / _LightningTime, -1);
         for(list<_tpRipple>::iterator i = Ripples.begin(); i != Ripples.end(); i++) {
             *i >>= 0.05;
             ellipse(Canvas, RotatedRect((Point)(i->Position) / _Scale, _RippleSize * i->Radius / (float)(_Scale), 0.0), i->Color * (_RippleMax - (i->Radius)) / _RippleMax);
