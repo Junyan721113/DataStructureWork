@@ -1,20 +1,20 @@
-#define MAX_VEX 50
-#define MAX_EDGE 100
+#define MAX_VEX 10
+#define MAX_EDGE 50
 #define MAX_TREE_SIZE 50
+#define CACHESIZE 100
 typedef int ElemType;
-
 typedef struct Enode {
-	int  ivex, jvex; //±ßËùÒÀ¸½µÄÁ½¸ö¶¥µã
-	int  weight; //±ßµÄÈ¨Öµ 
-} ENode; //±ß±íÔªËØÀàĞÍ¶¨Òå
+	int  ivex, jvex; //è¾¹æ‰€ä¾é™„çš„ä¸¤ä¸ªé¡¶ç‚¹
+	int  weight; //è¾¹çš„æƒå€¼ 
+} ENode; //è¾¹è¡¨å…ƒç´ ç±»å‹å®šä¹‰
 typedef struct {
-	int  vexnum, edgenum; //¶¥µãÊıºÍ±ßÊı
-	ElemType vexlist[MAX_VEX];   //¶¥µã±í
-	ENode  edgelist[MAX_EDGE];  //±ß±í
-} EGraph;    //ÓÃ±ß±í´æ·ÅÍ¼
+	int  vexnum, edgenum; //é¡¶ç‚¹æ•°å’Œè¾¹æ•°
+	ElemType vexlist[MAX_VEX];   //é¡¶ç‚¹è¡¨
+	ENode  edgelist[MAX_EDGE];  //è¾¹è¡¨
+} EGraph;    //ç”¨è¾¹è¡¨å­˜æ”¾å›¾
 typedef struct MSTEdge {
-	int vex1, vex2, weight; //±ßËùÒÀ¸½µÄÁ½¸ö¶¥µã¼°È¨ÖØ
-} MSTEdge; //´æ·Å×îĞ¡Éú³ÉÊ÷
+	int vex1, vex2, weight; //è¾¹æ‰€ä¾é™„çš„ä¸¤ä¸ªé¡¶ç‚¹åŠæƒé‡
+} MSTEdge; //å­˜æ”¾æœ€å°ç”Ÿæˆæ ‘
 
 typedef struct PTNode {
 	ElemType data;
