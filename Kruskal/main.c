@@ -2,41 +2,33 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-void InitEGraph(EGraph *g,int vexnum,int edgenum) {
+Status MixMFSet(MFSet *S, int i, int j) {
+	if (i<0 || i>S->n-1 || j<0 || j>S->n-1)   return ERROR;
+	if (S->nodes[i].parent > S->nodes[j].parent) {
+		S->nodes[j].parent += S->nodes[i].parent;
+		S->nodes[i].parent = j;//i所在集合合并到j所在集合
+	}
+	else {
+		S->nodes[i].parent += S->nodes[j].parent;
+		S->nodes[j].parent = i;
+	}
+	return OK;
+}
+int FindMFSet(MFSet* S, int i) {
+	if (i<0 || i>S->n-1)  return ERROR;
+	int j;
+	for ( j = i; S->nodes[j].parent >= 0; j = S->nodes[j].parent);
+	return j;
+}
+
+void InitEGraph(EGraph* g, int vexnum, int edgenum) {
 	if (vexnum > MAX_VEX || edgenum > MAX_EDGE)exit(-1);
 	g->vexnum = vexnum; g->edgenum = edgenum;
-	memset(g->edgelist, 0, edgenum);
-	for (int i = 0; i < vexnum; i++) {
-		g->vexlist[i] = i+1;
-	}
+	memset(g->edgelist, 0 ,edgenum*sizeof(ENode) );
+	memset(g->vexlist, (ElemType)0, vexnum*sizeof(ElemType));
 }
-MSTEdge* Kruskal(EGraph* g) {
-	int i, j, k, s1, s2;
-	MSTEdge* TE;
-	TE = (MSTEdge*)malloc(g->vexnum * sizeof(MSTEdge));
-	int* vSet;// 存放图中每个顶点所在的连通分量的编号
-	vSet = (int*)malloc(g->vexnum * sizeof(int));
-	for (i = 0; i < g->vexnum; i++) vSet[i] = i;//初始化数组vSet
-	//对边按权值从小到大排序
-	InsertSort(&g->edgelist, g->edgenum);
-	i = 0; j = 0;
-	while (i < g->vexnum && j < g->edgenum) {
-		s1 = vSet[g->edgelist[j].ivex];
-		s2 = vSet[g->edgelist[j].jvex];
-		if (s1 != s2) {//则将该边加入到TE中
-			TE[i].vex1 = g->edgelist[j].ivex;
-			TE[i].vex2 = g->edgelist[j].jvex;
-			TE[i].weight = g->edgelist[j].weight;
-			i++; //顶点数加1
-			for (k = 0; k < g->vexnum; k++)
-				if (vSet[k] == s2) vSet[k] = s1;
-		}
-		j++; //边数加1
-	}
-	free(vSet);
-	return TE;
-}
-void InsertSort(ENode *a, int len)
+
+void InsertSort(ENode a[], int len)
 {
 	int i, j;
 	ENode temp;
@@ -46,36 +38,81 @@ void InsertSort(ENode *a, int len)
 		temp.jvex = a[i].jvex;
 		temp.weight = a[i].weight;
 		//当前数小于前一位数时
-		if (a[i].weight< a[i - 1].weight)
+		if (a[i].weight < a[i - 1].weight)
 		{
 			//将子序列重新排列为有序序列
-			for (j = i - 1; temp.weight< a[j].weight; j--)
+			for (j = i - 1; temp.weight < a[j].weight; j--)
 			{
 				a[j + 1] = a[j];
 			}
-			a[j + 1].ivex= temp.ivex;
+			a[j + 1].ivex = temp.ivex;
 			a[j + 1].jvex = temp.jvex;
 			a[j + 1].weight = temp.weight;
 		}
 	}
 }
+MSTEdge* Kruskal(EGraph* g) {
+	int i, j, k, s1, s2;
+	MSTEdge* TE;
+	TE = (MSTEdge*)malloc(sizeof(MSTEdge));
+	if (TE) { memset(TE->edgelist, 0, g->vexnum * sizeof(ENode)); TE->n = 0; }
+	else exit(-1);
+	MFSet* VSet;// 存放图中每个顶点所在的连通分量的编号	
+	 VSet= (PTree*)malloc(g->vexnum * sizeof(PTree));
+	 VSet->n = g->vexnum;
+	 for (i = 0; i < g->vexnum; i++) { VSet->nodes[i].parent = -1; VSet->nodes[i].data = g->vexlist[i]; }//初始化数组vSet
+	//对边按权值从小到大排序
+	InsertSort(g->edgelist, g->edgenum);
+	i = 0; j = 0;
+	int max = 0;
+	while (i < g->vexnum && j < g->edgenum) {
+		s1 = FindMFSet( VSet,g->edgelist[j].ivex-1);
+		s2 = FindMFSet( VSet,g->edgelist[j].jvex-1);
+		if (s1 != s2) {//则将该边加入到TE中
+			TE->edgelist[i].ivex = g->edgelist[j].ivex;
+			TE->edgelist[i].jvex = g->edgelist[j].jvex;
+			TE->edgelist[i].weight = g->edgelist[j].weight;
+			max = g->vexlist[g->edgelist[j].ivex-1];
+			if (g->vexlist[g->edgelist[j].jvex-1] > max)max = g->vexlist[g->edgelist[j].jvex-1];
+			i++;//顶点数加1
+			TE->n++;
+			printf("加入边：%d-%d,权值：%d\n", g->edgelist[j].ivex, g->edgelist[j].jvex, g->edgelist[j].weight);
+			MixMFSet(VSet, s1, s2);
+		}
+		j++; //边数加1
+	}
+	free(VSet);
+	for (k = 0; max != g->vexlist[k]; k++);
+	TE->boot = k+1;//度数最大的节点作为根节点
+	return TE;
+}
+
 int main() {
+	printf("输入分为多行，第一行为节点数和边数，中间用空格隔开\n");
+	printf("其他行为边，两个节点中间‘-’隔开表示，如vex1-vex2 weight\n");
+	printf("输入结束后ctrl+z添加文件结束符再使用回车开始运行程序\n");
 	EGraph G;
 	int vexnum, edgenum;
-	int a, b,c;
+	int a, b, c;
 	scanf("%d %d", &vexnum, &edgenum);
-	InitEGraph(&G,vexnum,edgenum);
-	char tmp[CACHESIZE], * tmpp = tmp;
-	int i = 0, offset;
-	fgets(tmp, CACHESIZE, stdin);
-	while (sscanf(tmpp, "%d-%d %d%n", &a,&b,&c, &offset) == 2)
-	{
-		tmpp += offset + 1;
+	getchar();
+	InitEGraph(&G, vexnum, edgenum);
+	int i = 0;
+	while (scanf("%d-%d %d", &a, &b, &c)) {
 		G.edgelist[i].ivex = a;
 		G.edgelist[i].jvex = b;
 		G.edgelist[i].weight = c;
+		G.vexlist[a-1]++;
+		G.vexlist[b-1]++;
 		i++;
-		if (i >= edgenum)break;
+		if (i == edgenum||(getchar())==EOF) break;
 	}
-
+	if (i < edgenum-1)printf("输入边数不符，请继续输入：\n");
+	MSTEdge* TE = Kruskal(&G);
+	printf("MST中度数最大的节点为%d，设其为根节点\n", TE->boot);
+	int Weight=0;
+	for (int j = 0; j < TE->n; j++) {
+		Weight += TE->edgelist[j].weight;
+	}
+	printf("MST的权值为%d\n", Weight);
 }
