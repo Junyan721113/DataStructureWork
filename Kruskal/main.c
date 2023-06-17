@@ -14,15 +14,10 @@ Status MixMFSet(MFSet* S, int i, int j) {
 	}
 	return OK;
 }
-int FixMFSet(MFSet* S, int i) {
+int FindMFSet(MFSet* S, int i) {
 	if (i<0 || i>S->n - 1)  return ERROR;
 	int j;
 	for (j = i; S->nodes[j].parent >= 0; j = S->nodes[j].parent);
-	int t;
-	for (int k = i; k != j; k = t) {
-		t = S->nodes[k].parent;
-		S->nodes[k].parent = j;
-	}
 	return j;
 }
 
@@ -32,7 +27,34 @@ void InitEGraph(EGraph* g, int vexnum, int edgenum) {
 	memset(g->edgelist, 0, edgenum * sizeof(ENode));
 	memset(g->vexlist, (ElemType)0, vexnum * sizeof(ElemType));
 }
+void swap(ENode* a, ENode* b) {
+	ENode temp = *b;
+	*b = *a;
+	*a = temp;
+}
+void HeapAdjust(ENode R[], int s, int m) {
+	ENode rc = R[s];    //暂存 R[s] 
+	for (int j = 2 * s; j <= m; j *= 2) { //j 初值指向左孩子
+		//沿着key较大的孩子结点自上而下筛选
+		if (j < m && R[j].weight < R[j + 1].weight)
+			++j;  //j为key较大的记录下标
+		if (rc.weight >= R[j].weight)  break; //rc应插入在位置s上
+		R[s] = R[j];   s = j;
+	}
+	R[s] = rc;  //将调整前的堆顶记录插入到 s 位置
+} //HeapAdjust
 
+void HeapSort(ENode arr[], int len) {
+	int i;
+	//初始化，i从最后一个父节点开始调整
+	for (i = len / 2 - 1; i >= 0; i--)
+		HeapAdjust(arr, i, len - 1);
+	//先将第一个元素和已排好元素前一位做交换，再从新调整，直到排序完毕
+	for (i = len - 1; i > 0; i--) {
+		swap(&arr[0], &arr[i]);
+		HeapAdjust(arr, 0, i - 1);
+	}
+}
 void InsertSort(ENode a[], int len)
 {
 	int i, j;
@@ -55,35 +77,7 @@ void InsertSort(ENode a[], int len)
 			a[j + 1].weight = temp.weight;
 		}
 	}
-}void HeapAdjust(ENode list[], int s, int m) {
-	int  j;
-	ENode rc;
-	rc = list[s];
-	for (; 2 * s <= m; s = j) {
-		j = 2 * s;
-		if (s<m && list[j + 1].weight>list[j].weight)
-			j++;
-		if (rc.weight < list[j].weight)
-			list[s] = list[j];
-		else
-			break;
-	}
-	list[s] = rc;
 }
-void HeapSort(ENode a[], int len) {
-	int i;
-	ENode temp;
-	for (i = len/ 2; i > 0; i--) {
-		HeapAdjust(a, i, len);
-	}
-	for (i = len; i > 0; i--) {
-		temp = a[1];
-		a[1] = a[i];
-		a[i] = temp;
-		HeapAdjust(a, 1, i - 1);
-	}
-}
-
 MSTEdge* Kruskal(EGraph* g) {
 	int i, j, k, s1, s2;
 	MSTEdge* TE;
@@ -95,12 +89,12 @@ MSTEdge* Kruskal(EGraph* g) {
 	VSet->n = g->vexnum;
 	for (i = 0; i < g->vexnum; i++) { VSet->nodes[i].parent = -1; VSet->nodes[i].data = g->vexlist[i]; }//初始化数组vSet
 	//对边按权值从小到大排序
-	InsertSort(g->edgelist, g->edgenum);
+	HeapSort(g->edgelist, g->edgenum);
 	i = 0; j = 0;
 	int max = 0;
 	while (i < g->vexnum && j < g->edgenum) {
-		s1 = FixMFSet(VSet, g->edgelist[j].ivex - 1);
-		s2 = FixMFSet(VSet, g->edgelist[j].jvex - 1);
+		s1 = FindMFSet(VSet, g->edgelist[j].ivex - 1);
+		s2 = FindMFSet(VSet, g->edgelist[j].jvex - 1);
 		if (s1 != s2) {//则将该边加入到TE中
 			TE->edgelist[i].ivex = g->edgelist[j].ivex;
 			TE->edgelist[i].jvex = g->edgelist[j].jvex;
@@ -141,6 +135,7 @@ int main() {
 		if (i == edgenum || (getchar()) == EOF) break;
 	}
 	if (i < edgenum - 1)printf("输入边数不符，请继续输入：\n");
+	printf("====================\n");
 	MSTEdge* TE = Kruskal(&G);
 	printf("MST中度数最大的节点为%d，设其为根节点\n", TE->boot);
 	int Weight = 0;
@@ -148,4 +143,5 @@ int main() {
 		Weight += TE->edgelist[j].weight;
 	}
 	printf("MST的权值为%d\n", Weight);
+	printf("====================");
 }
